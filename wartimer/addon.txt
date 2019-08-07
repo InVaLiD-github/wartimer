@@ -1,0 +1,7 @@
+// Extracted with MulleDK19's GMAD Extractor
+"AddonInfo"
+{
+	"name" "WarTimer"
+	"author_name" "Unknown"
+	"info" "The perfect countdown timer to mayhem"
+}
