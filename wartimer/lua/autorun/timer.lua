@@ -1,4 +1,4 @@
-local timeBetweenWars = 60 -- the amount of time the war and passive time lasts, in seconds
+local timeBetweenWars = 1200 -- the amount of time the war and passive time lasts, in seconds
 
 local warColor = Color(100, 0, 0, 150) -- R,G,B,A
 local passiveColor = Color(0,100,0,150)-- R,G,B,A
@@ -80,6 +80,7 @@ local sendInitMSG = 0
 timer.Create("war",timeBetweenWars,0, function()
 	if warCurrent == 1 then
 		warCurrent = 2
+		PrintMessage(HUD_PRINTCENTER, "THE BATTLEFIELD IS NOW ACTIVE.")
 		print("Wartime has started!")
 		net.Start("activewar")
 		net.Broadcast()
@@ -321,12 +322,6 @@ hook.Add( "InitPostEntity", "warplayerspawned", function(ply)
 				team2ClientScore = tonumber(timerString2)
 				
 			end)
-		end)
-
-
-		timer.Create("testtimer", 1, 0, function()
-			print("Allies: "..team1ClientScore)
-			print("Axis: "..team2ClientScore)
 		end)
 
 		TeamPanel:SetSize(TeamBG:GetWide(), TeamBG:GetTall())
