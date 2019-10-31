@@ -1,7 +1,10 @@
 local timeBetweenWars = 1200 -- the amount of time the war and passive time lasts, in seconds
 
-local warColor = Color(100, 0, 0, 150) -- R,G,B,A
-local passiveColor = Color(0,100,0,150)-- R,G,B,A
+local warColor = Color(100, 0, 0, 150) -- R,G,B,A  - This is the color shown when the war is active
+local passiveColor = Color(0,100,0,150)-- R,G,B,A  - This is the color shown when the war is passive
+
+local active = "ACTIVE" -- This is the word shown when the war is active, I recommend setting this to all caps for style reasons.
+local passive = "PASSIVE" -- This is the word shown when the war is passive, I recommend setting this to all caps for style reasons.
 
 local team1Name = "Allied"
 local team2Name = "Axis"
@@ -11,6 +14,7 @@ local team2Category = "Axis"
 
 local team1Color = Color(10,50,10, 120)
 local team2Color = Color(50,10,10, 120)
+
 
 
 
@@ -46,6 +50,7 @@ local team2Color = Color(50,10,10, 120)
 local team1 = {}
 local team2 = {}
 
+
 if SERVER then 
 
 util.AddNetworkString("warTimerToClient")
@@ -76,6 +81,7 @@ end
 local warCurrent = 1 -- 1 for Calm Time - 2 for Wartime
 local warTimerCount = 0
 local sendInitMSG = 0
+local dcPlayer = {}
 
 timer.Create("war",timeBetweenWars,0, function()
 	if warCurrent == 1 then
@@ -170,12 +176,23 @@ util.AddNetworkString("warOnSpawn")
   
 end)
 
+local function plyDC( ply )
+	print(ply:GetName())
+	if table.HasValue(team1, ply) then
+		print(ply:GetName() .. "Disconnected; they were ".. team1Name)
+		table.RemoveByValue(team1, ply)
+	elseif table.HasValue(team2, ply) then
+		print(ply:GetName() .. "Disconnected; they were ".. team2Name)
+		table.RemoveByValue(team2, ply)
+	else
+		print(ply:GetName() .. "Disconnected; they were neutral")
+	end
+end
 
 
+hook.Add( "PlayerDisconnected", "warPlayerDC", plyDC )
 
-
-
-print("[WARTIMER] ".."\n".."sv loaded!")
+print("[WARTIMER] ".."\n".."sv loaded!".."\n------------------------------------------------------------------------")
 
 end
 if CLIENT then
@@ -202,8 +219,8 @@ hook.Add( "InitPostEntity", "warplayerspawned", function(ply)
 		TeamPanel = vgui.Create("DPanel", TeamBG)
 		TeamInner1 = vgui.Create("DPanel", TeamPanel)
 		TeamInner2 = vgui.Create("DPanel", TeamPanel)
-		Team1Score = vgui.Create("DLabel", TeamInner)
-		Team2Score = vgui.Create("DLabel", TeamInner)
+		Team1Score = vgui.Create("DLabel", TeamInner1)
+		Team2Score = vgui.Create("DLabel", TeamInner2)
 
 --[[                                                WARHUD CONFIG                                                   ]]--
 
@@ -218,7 +235,7 @@ hook.Add( "InitPostEntity", "warplayerspawned", function(ply)
 		end
 
 		WarHUD:SetSize(124,60)
-		WarHUD:SetPos(frame:GetWide() / 2 - WarHUD:GetWide() / 2 - 1, WarHUD:GetTall() - frame:GetTall() / 2)
+		WarHUD:SetPos(frame:GetWide() / 2 - WarHUD:GetWide() / 2, WarHUD:GetTall() - frame:GetTall() / 2)
 		local blur = Material("pp/blurscreen")
 			local function DrawBlur(panel, amount)
 			local x, y = WarHUD:LocalToScreen(0, 0)
@@ -269,14 +286,14 @@ hook.Add( "InitPostEntity", "warplayerspawned", function(ply)
 			print("Wartime Has Ended!")
 			WarPanelA:SetDisabled(true)
 			WarPanelP:SetDisabled(false)
-			WarIndicator:SetText("PASSIVE")
+			WarIndicator:SetText(passive)
 			WarIndicator:SetColor(Color(250,250,250))
 		end)
 		net.Receive("activewar",function()
 			print("Wartime Has Started!")
 			WarPanelA:SetDisabled(false)
 			WarPanelP:SetDisabled(true)
-			WarIndicator:SetText("ACTIVE")
+			WarIndicator:SetText(active)
 			WarIndicator:SetColor(Color(250,0,0))
 		end)
 		timer.Create("interval",0.5,0,function()
@@ -329,47 +346,45 @@ hook.Add( "InitPostEntity", "warplayerspawned", function(ply)
 		function TeamPanel.Paint()
 		 draw.RoundedBoxEx(0,TeamPanel:GetPos(),TeamPanel:GetPos(),TeamPanel:GetWide(),TeamPanel:GetTall(),Color(0,0,0,150),false,false,false,false)
 		end
-		timer.Create("barmovement", 0.2, 0, function()
-			if team2ClientScore != 0 or nil && team1ClientScore != 0 or nil then
-				TeamInner1:SetSize(TeamBG:GetWide() / 2 / team2ClientScore * team1ClientScore, TeamBG:GetTall())
-				TeamInner1:SetPos(TeamBG:GetPos(), TeamBG:GetPos())
-				function TeamInner1.Paint()
-					draw.RoundedBoxEx(0,TeamInner1:GetPos(),TeamInner1:GetPos(),TeamInner1:GetWide(),TeamInner1:GetTall(),team1Color,false,false,false,false)
-				end
-			else
-				TeamInner1:SetSize(TeamBG:GetWide() / 2 , TeamBG:GetTall())
-				TeamInner1:SetPos(TeamBG:GetPos(), TeamBG:GetPos())
-				function TeamInner1.Paint()
-					draw.RoundedBoxEx(0,TeamInner1:GetPos(),TeamInner1:GetPos(),TeamInner1:GetWide(),TeamInner1:GetTall(),team1Color,false,false,false,false)
-				end
-			end
 
-			if team1ClientScore != 0 or nil && team2ClientScore != 0 or nil then
-				TeamInner2:SetSize(TeamBG:GetWide() / 2 / team1ClientScore * team2ClientScore, TeamBG:GetTall())
-				TeamInner2:SetPos(TeamBG:GetPos() + TeamInner2:GetWide() + team1ClientScore, TeamBG:GetPos())
-				function TeamInner2.Paint()
-					draw.RoundedBox(0,TeamBG:GetPos(),TeamBG:GetPos(),TeamInner2:GetWide(),TeamInner2:GetTall(),team2Color)
-				end
+		local t1forrender = 0
+		local t2forrender = 0
+
+		timer.Create("barmovement", 0.2, 0, function()
+			if team1ClientScore == 0 then
+				t1forrender = 2
 			else
-				TeamInner2:SetSize(TeamBG:GetWide() / 2, TeamBG:GetTall())
-				TeamInner2:SetPos(TeamBG:GetPos() + TeamInner2:GetWide(), TeamBG:GetPos())
+				t1forrender = team1ClientScore
+			end
+			if team2ClientScore == 0 then
+				t2forrender = 2
+			else
+				t2forrender = team1ClientScore
+			end
+				TeamInner1:SetSize(TeamBG:GetWide() / t2forrender * t1forrender/2, TeamBG:GetTall()) -- TeamBG:GetWide() * 2 / ((t1forrender / t2forrender + t2forrender)/2)
+				TeamInner1:SetPos(TeamBG:GetPos(), TeamBG:GetPos())
+				TeamInner2:SetSize(TeamBG:GetWide() - TeamInner1:GetWide(), TeamBG:GetTall())
+				TeamInner2:SetPos(TeamBG:GetPos() + TeamInner1:GetWide(), TeamBG:GetPos())
+				function TeamInner1.Paint()
+					draw.RoundedBoxEx(0,TeamInner1:GetPos(),TeamInner1:GetPos(),TeamInner1:GetWide(),TeamInner1:GetTall(),team1Color,false,false,false,false)
+				end
 				function TeamInner2.Paint()
 					draw.RoundedBox(0,TeamBG:GetPos(),TeamBG:GetPos(),TeamInner2:GetWide(),TeamInner2:GetTall(),team2Color)
 				end
-			end
+				
 		end)
 		Team1Score:SetFont("DermaDefault")
-		Team1Score:SetPos(TeamInner1:GetPos() / 2 - TeamInner1:GetWide(), TeamInner1:GetTall() / 2.5)
-		Team1Score:SetText("0")
+		Team1Score:SetPos(TeamInner1:GetPos(), TeamInner1:GetTall())
+		Team1Score:SetText(team1ClientScore)
 
 		Team2Score:SetFont("DermaDefault")
-		Team2Score:SetPos(TeamInner2:GetPos() / 2 - TeamInner2:GetWide(), TeamInner2:GetTall() / 2.5)
-		Team2Score:SetText("0")
+		Team2Score:SetPos(TeamInner2:GetPos(), TeamInner2:GetTall())
+		Team2Score:SetText(team2ClientScore)
 		-- Scores Labels
 
 		timer.Create("updateScores", 3,0,function()
-				Team1Score:SetText(team1ClientScore)
-				Team2Score:SetText(team2ClientScore)
+				Team1Score:SetText(tostring(team1ClientScore))
+				Team2Score:SetText(tostring(team2ClientScore))
 		end)
 end
 end)
